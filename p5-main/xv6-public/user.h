@@ -1,5 +1,6 @@
 struct stat;
 struct rtcdate;
+struct mutex;
 
 // system calls
 int fork(void);
@@ -24,6 +25,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int clone(void (*)(void*), void*, void*);
+void minit(struct mutex m);
 
 // ulib.c
 int stat(const char*, struct stat*);
