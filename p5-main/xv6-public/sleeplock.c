@@ -9,6 +9,7 @@
 #include "proc.h"
 #include "spinlock.h"
 #include "sleeplock.h"
+#include "mutex.h"
 
 void initsleeplock(struct sleeplock *lk, char *name)
 {
@@ -49,16 +50,58 @@ int holdingsleep(struct sleeplock *lk)
   return r;
 }
 
-void sys_macquire()
+void sys_macquire(void)
 {
-  return;
+
+  mutex *m;
+  if (argptr(0, (void *)&m, sizeof(struct mutex)) < 0)
+    return; // failure
+  macquire(m);
 }
+
 void sys_mrelease()
 {
-  return;
+  mutex *m;
+  if (argptr(0, (void *)&m, sizeof(struct mutex)) < 0)
+    return; // failure
+
+  mrelease(m);
 }
 
 void sys_minit()
 {
-  return;
+  mutex *m;
+  if (argptr(0, (void *)&m, sizeof(struct mutex)) < 0)
+    return; // failure
+
+  minit(m);
+}
+
+void minit(mutex *m)
+{
+  initlock(&m->lk, "sleep lock");
+
+  m->locked = 0;
+  m->pid = 0;
+}
+
+void mrelease(mutex *m)
+{
+  acquire(&m->lk);
+  m->locked = 0;
+  m->pid = 0;
+  wakeup(m);
+  release(&m->lk);
+}
+
+void macquire(mutex *m)
+{
+  acquire(&m->lk);
+  while (m->locked)
+  {
+    sleep(m, &m->lk);
+  }
+  m->locked = 1;
+  m->pid = myproc()->pid;
+  release(&m->lk);
 }
