@@ -68,7 +68,7 @@ struct proc
   char name[MAXPROCNAMELEN];  // Process name (debugging)
   int nclone;                 // Number of clone calls on this proc (for grading)
   int sleepticks;             // Number of ticks left the process should sleep for
-  //  int nice;                   // Nice value of the process
+  int nice;                   // Nice value of the process
 };
 typedef struct
 {

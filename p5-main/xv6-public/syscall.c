@@ -103,6 +103,7 @@ extern int sys_clone(void);
 extern int sys_macquire(void);
 extern int sys_mrelease(void);
 extern int sys_minit(void);
+extern int sys_nice(void);
 
 static int (*syscalls[])(void) = {
     [SYS_fork] sys_fork,
@@ -130,6 +131,7 @@ static int (*syscalls[])(void) = {
     [SYS_macquire] sys_macquire,
     [SYS_mrelease] sys_mrelease,
     [SYS_minit] sys_minit,
+    [SYS_nice] sys_nice,
 };
 
 void syscall(void)

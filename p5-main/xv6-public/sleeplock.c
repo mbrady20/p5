@@ -105,3 +105,25 @@ void macquire(mutex *m)
   m->pid = myproc()->pid;
   release(&m->lk);
 }
+
+int sys_nice(void)
+{
+  int inc;
+  if (argint(0, &inc) < 0)
+    return -1;
+  return nice(inc);
+}
+
+int nice(int inc)
+{
+  struct proc *p = myproc();
+  int new = p->nice + inc;
+
+  if (new < -20)
+    new = -20;
+  if (new > 19)
+    new = 19;
+
+  p->nice = new;
+  return 0;
+}

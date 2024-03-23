@@ -13,3 +13,5 @@ void macquire(mutex *m);
 void mrelease(mutex *m);
 
 void minit(mutex *m);
+
+int nice(int inc);
