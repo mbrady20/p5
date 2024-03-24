@@ -5,7 +5,7 @@ typedef struct mutex
   uint nice;          // Priority of the lock
 
   // For debugging:
-  int pid;    // Process holding lock
+  int pid; // Process holding lock
 } mutex;
 
 void macquire(mutex *m);

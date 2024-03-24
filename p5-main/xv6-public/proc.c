@@ -94,7 +94,9 @@ found:
   p->nclone = 0;
   p->sleepticks = -1;
   p->chan = 0;
-  p->nice = 0;
+  p->nice = 0;        // set nice value to 0
+  p->lockNice = 0;    // set locknice value to 0
+  p->niceChanged = 0; // indicate locknice value has not been changed
 
   release(&ptable.lock);
 
@@ -206,7 +208,9 @@ int fork(void)
     np->state = UNUSED;
     return -1;
   }
-  np->nice = 0;
+  np->nice = 0;        // set nice to 0
+  np->lockNice = 0;    // set lockNice to 0
+  np->niceChanged = 0; // indicate lockNice value has not been changed
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
@@ -258,7 +262,9 @@ int clone(void (*fn)(void *), void *stack, void *arg)
     uvmd = allocate_uvmrefcount(curproc->pgdir, 2);
   }
   np->chan = 0;
-  np->nice = 0;
+  np->nice = 0;        // set nice value to 0
+  np->lockNice = 0;    // set lockNice value to 0
+  np->niceChanged = 0; // indicate lockNice value has not been changed
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
@@ -408,7 +414,7 @@ int wait(void)
 //   - swtch to start running that process
 //   - eventually that process transfers control
 //       via swtch back to the scheduler.
-void scheduler(void)
+void scheduler(void) // this is the scheduler method
 {
   struct proc *p;
   struct cpu *c = mycpu();
@@ -424,14 +430,20 @@ void scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     lownice = 21;
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) // this loop is to find the process with the lowest nice value
     {
-      if (p->state == RUNNABLE && p->nice < lownice)
-        lownice = p->nice;
+      if (p->state == RUNNABLE)
+      {
+        if (p->lockNice < lownice)
+          lownice = p->lockNice;
+        if (p->nice < lownice)
+          lownice = p->nice;
+      }
     }
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     {
-      if (p->state != RUNNABLE || p->nice != lownice)
+      if (p->state != RUNNABLE || (p->lockNice != lownice && p->nice != lownice)) // continues if process is not runnable or lockNice and nice are not equal to lownice
+                                                                                  // the result of this is round robin between appropriate threads
         continue;
 
       // Switch to chosen process.  It is the process's job
@@ -639,4 +651,18 @@ void procdump(void)
     }
     cprintf("\n");
   }
+}
+
+struct proc *getproc(int pid)
+{
+  struct proc *p;
+
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if (p->pid == pid)
+    {
+      return p;
+    }
+  }
+  return 0;
 }

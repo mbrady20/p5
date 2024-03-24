@@ -90,6 +90,7 @@ void mrelease(mutex *m)
   acquire(&m->lk);
   m->locked = 0;
   m->pid = 0;
+  m->nice = 21;
   wakeup(m);
   release(&m->lk);
 }
@@ -97,13 +98,22 @@ void mrelease(mutex *m)
 void macquire(mutex *m)
 {
   acquire(&m->lk);
-  while (m->locked)
+  while (m->locked) // if the lock is already locked, sleep
   {
+    if (m->nice > myproc()->nice) // if the lock is held by a process with a higher nice value than this process (so lower priority)
+    {
+      m->nice = myproc()->nice;         // update the lock's nice value to the current process's nice value
+      struct proc *p = getproc(m->pid); // get the process holding this lock
+      p->lockNice = m->nice;            // update the lock niceness value of the process holding the lock to be the same as the process trying to acquire the lock
+      p->niceChanged = 1;               // indicate that locknice has been changed
+    }
+
     sleep(m, &m->lk);
   }
-  m->locked = 1;
-  m->pid = myproc()->pid;
-  release(&m->lk);
+  m->locked = 1;            // lock acquired
+  m->nice = myproc()->nice; // set lock's nice value to the process's nice value
+  m->pid = myproc()->pid;   // set lid's pid to the process's pid
+  release(&m->lk);          // release lock's lock (see mutex.h for our implementation and sleeplock.h for more the original implementation)
 }
 
 int sys_nice(void)
@@ -114,16 +124,20 @@ int sys_nice(void)
   return nice(inc);
 }
 
-int nice(int inc)
+int nice(int inc) // increment the nice value of the process
 {
   struct proc *p = myproc();
   int new = p->nice + inc;
 
-  if (new < -20)
+  if (new < -20) // cap new niceness in range [-20, 19]
     new = -20;
   if (new > 19)
     new = 19;
 
   p->nice = new;
+  if (p->niceChanged == 0) // check to see if the lock nice has been changed, if not keep it line with the process nice
+  {
+    p->lockNice = new;
+  }
   return 0;
 }

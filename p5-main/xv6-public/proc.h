@@ -69,6 +69,8 @@ struct proc
   int nclone;                 // Number of clone calls on this proc (for grading)
   int sleepticks;             // Number of ticks left the process should sleep for
   int nice;                   // Nice value of the process
+  int lockNice;               // Nice value of the lock the process is holding
+  int niceChanged;            // If the lock nice value of the process has been changed
 };
 typedef struct
 {
@@ -83,3 +85,5 @@ typedef struct
 //   expandable heap
 
 #endif
+
+struct proc *getproc(int pid);
