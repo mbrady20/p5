@@ -98,13 +98,13 @@ void mrelease(mutex *m)
   m->locked = 0;
   m->pid = 0;
   m->nice = 21;
-  setProcNice(m->waiterPids);
+  setProcNice(m->waiterPids); // this sets the locknice value of the processes waiting on this lock to the nice value
   m->numWaiters = 0;
   for (int i = 0; i < NPROC; i++)
   {
     m->waiterPids[i] = 0;
   }
-  myproc()->lockNice = myproc()->nice;
+  myproc()->lockNice = myproc()->nice; // set the locknice value of the process releasing the lock to its nice value
   wakeup(m);
   release(&m->lk);
 }
