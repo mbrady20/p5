@@ -1,10 +1,13 @@
+#include "param.h"
 typedef struct mutex
 {
   uint locked;        // Is the lock held?
   struct spinlock lk; // spinlock protecting this sleep lock
-  uint nice;          // Priority of the lock
+  int nice;          // Priority of the lock
 
   // For debugging:
+  int numWaiters; // Number of processes waiting for lock
+  int waiterPids[NPROC]; // Pids of processes waiting for lock
   int pid; // Process holding lock
 } mutex;
 

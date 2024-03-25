@@ -87,3 +87,4 @@ typedef struct
 #endif
 
 struct proc *getproc(int pid);
+void setProcNice(int pids[NPROC]);

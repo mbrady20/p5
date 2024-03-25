@@ -5,6 +5,7 @@
 #include "mmu.h"
 #include "x86.h"
 #include "proc.h"
+#include "mutex.h"
 #include "spinlock.h"
 
 Ptable ptable;
@@ -656,13 +657,35 @@ void procdump(void)
 struct proc *getproc(int pid)
 {
   struct proc *p;
-
+  acquire(&ptable.lock);
   for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
     if (p->pid == pid)
     {
+      release(&ptable.lock);
       return p;
     }
   }
+  release(&ptable.lock);
   return 0;
+}
+
+void setProcNice(int pids[NPROC])
+{
+  acquire(&ptable.lock);
+  for (int i = 0; i < NPROC; i++)
+  {
+    if (pids[i] == 0)
+    {
+      continue;
+    }
+    release(&ptable.lock);
+
+    struct proc *p = getproc(pids[i]);
+    acquire(&ptable.lock);
+
+    p->lockNice = p->nice;
+    p->niceChanged = 0;
+  }
+  release(&ptable.lock);
 }

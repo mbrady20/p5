@@ -10,6 +10,7 @@
 #include "spinlock.h"
 #include "sleeplock.h"
 #include "mutex.h"
+#include "param.h"
 
 void initsleeplock(struct sleeplock *lk, char *name)
 {
@@ -80,17 +81,30 @@ void sys_minit()
 void minit(mutex *m)
 {
   initlock(&m->lk, "sleep lock");
-
+  m->numWaiters = 0;
+  m->nice = 21;
   m->locked = 0;
   m->pid = 0;
+  for (int i = 0; i < NPROC; i++)
+  {
+    m->waiterPids[i] = 0;
+  }
 }
 
 void mrelease(mutex *m)
 {
   acquire(&m->lk);
+
   m->locked = 0;
   m->pid = 0;
   m->nice = 21;
+  setProcNice(m->waiterPids);
+  m->numWaiters = 0;
+  for (int i = 0; i < NPROC; i++)
+  {
+    m->waiterPids[i] = 0;
+  }
+  myproc()->lockNice = myproc()->nice;
   wakeup(m);
   release(&m->lk);
 }
@@ -102,10 +116,12 @@ void macquire(mutex *m)
   {
     if (m->nice > myproc()->nice) // if the lock is held by a process with a higher nice value than this process (so lower priority)
     {
-      m->nice = myproc()->nice;         // update the lock's nice value to the current process's nice value
-      struct proc *p = getproc(m->pid); // get the process holding this lock
-      p->lockNice = m->nice;            // update the lock niceness value of the process holding the lock to be the same as the process trying to acquire the lock
-      p->niceChanged = 1;               // indicate that locknice has been changed
+      m->nice = myproc()->nice;                       // update the lock's nice value to the current process's nice value
+      m->waiterPids[m->numWaiters++] = myproc()->pid; // add the current process to the list of waiters;
+      struct proc *p = getproc(m->pid);               // get the process holding this lock
+      if (m->nice < p->lockNice)
+        p->lockNice = m->nice; // update the lock niceness value of the process holding the lock to be the same as the process trying to acquire the lock
+      p->niceChanged = 1;      // indicate that locknice has been changed
     }
 
     sleep(m, &m->lk);
